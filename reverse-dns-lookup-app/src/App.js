@@ -3,6 +3,8 @@ import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import './App.css';
 import { FaGlobe } from 'react-icons/fa';
 import About from './components/About';
+import Contact from './components/Contact';
+import logo from './assets/logo.svg';
 
 const REVERSE_DNS_INFO = {
   'PTR': 'Pointer Record - Maps an IP address to a domain name',
@@ -164,10 +166,15 @@ function App() {
   return (
     <div className="App">
       <nav className="navbar">
+        <div className="nav-brand">
+          <Link to="/">
+            <img src={logo} alt="Reverse DNS Lookup" className="nav-logo" />
+          </Link>
+        </div>
         <div className="nav-links">
           <Link to="/" className={location.pathname === "/" ? "active" : ""}>Home</Link>
           <Link to="/about" className={location.pathname === "/about" ? "active" : ""}>About</Link>
-          <Link to="/docs" className={location.pathname === "/docs" ? "active" : ""}>Docs</Link>
+          <Link to="/contact" className={location.pathname === "/contact" ? "active" : ""}>Contact Us</Link>
         </div>
       </nav>
       
@@ -185,6 +192,7 @@ function App() {
           />
         } />
         <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
       </Routes>
     </div>
   );
