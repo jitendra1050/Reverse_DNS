@@ -1,0 +1,12 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://reverse-dns-lookup-app.vercel.app/sitemap.xml
+
+# Prevent crawling of unnecessary paths
+Disallow: /api/
+Disallow: /static/js/
+Disallow: /static/css/
+Disallow: /static/media/
