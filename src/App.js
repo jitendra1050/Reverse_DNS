@@ -13,47 +13,22 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      // First, get PTR record from Google DNS API
+      // Get PTR record from Google DNS API
       const ptrResponse = await fetch(`https://dns.google/resolve?name=${ipAddress.split('.').reverse().join('.')}.in-addr.arpa&type=PTR`);
       const ptrData = await ptrResponse.json();
       
-      // Using a secure HTTPS endpoint for IP info
-      const ipInfoResponse = await fetch(`https://ipapi.co/${ipAddress}/json/`);
-      const ipInfo = await ipInfoResponse.json();
-      
       console.log('PTR Response:', ptrData);
-      console.log('IP Info Response:', ipInfo);
       
-      setApiResponse({ ptr: ptrData, ipInfo: ipInfo });
+      setApiResponse({ ptr: ptrData });
       
-      // Check for errors in ipapi.co response
-      if (ipInfo.error) {
-        throw new Error(ipInfo.reason || 'Failed to fetch IP information');
+      if (!ptrData.Answer) {
+        throw new Error('No PTR record found for this IP address');
       }
 
       const formattedData = [
         {
-          type: 'PTR',
-          hostname: ptrData.Answer ? ptrData.Answer[0].data.slice(0, -1) : 'No PTR record found'
-        },
-        {
-          type: 'Location',
-          city: ipInfo.city || 'N/A',
-          region: ipInfo.region || 'N/A',
-          country: ipInfo.country_name || 'N/A'
-        },
-        {
-          type: 'ISP',
-          isp: ipInfo.org || 'N/A'
-        },
-        {
-          type: 'Organization',
-          org: ipInfo.org || 'N/A'
-        },
-        {
-          type: 'Network',
-          as: ipInfo.asn || 'N/A',
-          asname: ipInfo.org || 'N/A'
+          type: 'PTR Record',
+          hostname: ptrData.Answer[0].data.slice(0, -1)
         }
       ];
       setDnsInfo(formattedData);
@@ -91,11 +66,11 @@ function App() {
       </nav>
       <header className="App-header">
         <h1>Reverse DNS Lookup Tool</h1>
-        <p>Convert IP addresses to hostnames and get detailed network information. Useful for network troubleshooting, email verification, and security analysis.</p>
+        <p>Convert IP addresses to hostnames. A simple and fast DNS lookup tool for network troubleshooting.</p>
       </header>
       <div className="hero">
-        <h2>Your IP Information, Simplified</h2>
-        <p>Quickly fetch reverse DNS records and network details for any IP address.</p>
+        <h2>DNS Lookup Made Simple</h2>
+        <p>Quickly fetch reverse DNS records for any IP address.</p>
         <button className="cta-button">Get Started</button>
       </div>
       <form onSubmit={handleSubmit}>
@@ -111,21 +86,21 @@ function App() {
       {error && <p className="error">{error}</p>}
       {dnsInfo.length > 0 && (
         <div className="record-group">
-          <h2>IP Information</h2>
-          <p className="record-description">Detailed information about IP address: {ipAddress}</p>
+          <h2>DNS Information</h2>
+          <p className="record-description">DNS record for IP address: {ipAddress}</p>
           <div className="table-wrapper">
             <table>
               <thead>
                 <tr>
                   <th>Type</th>
-                  <th>Information</th>
+                  <th>Hostname</th>
                 </tr>
               </thead>
               <tbody>
                 {dnsInfo.map((info, index) => (
                   <tr key={index}>
                     <td><FaGlobe /> {info.type}</td>
-                    <td className="data-cell">{formatIpInfo(info)}</td>
+                    <td className="data-cell">{info.hostname}</td>
                   </tr>
                 ))}
               </tbody>
@@ -144,23 +119,4 @@ function App() {
   );
 }
 
-function formatIpInfo(info) {
-  if (!info) return '';
-  
-  switch(info.type) {
-    case 'PTR':
-      return info.hostname || 'No PTR record found';
-    case 'Location':
-      return `${info.city}, ${info.region}, ${info.country}`;
-    case 'ISP':
-      return info.isp;
-    case 'Organization':
-      return info.org;
-    case 'Network':
-      return `AS${info.as} ${info.asname}`;
-    default:
-      return info.value || '';
-  }
-}
-
-export default App; 
+export default App;
