@@ -17,44 +17,50 @@ function App() {
       const ptrResponse = await fetch(`https://dns.google/resolve?name=${ipAddress.split('.').reverse().join('.')}.in-addr.arpa&type=PTR`);
       const ptrData = await ptrResponse.json();
       
-      // Then get additional information from IP-API
-      const ipInfoResponse = await fetch(`http://ip-api.com/json/${ipAddress}`);
+      // Using a secure HTTPS endpoint for IP info
+      const ipInfoResponse = await fetch(`https://ipapi.co/${ipAddress}/json/`);
       const ipInfo = await ipInfoResponse.json();
+      
+      console.log('PTR Response:', ptrData);
+      console.log('IP Info Response:', ipInfo);
       
       setApiResponse({ ptr: ptrData, ipInfo: ipInfo });
       
-      if (ipInfo.status === 'success') {
-        const formattedData = [
-          {
-            type: 'PTR',
-            hostname: ptrData.Answer ? ptrData.Answer[0].data.slice(0, -1) : null
-          },
-          {
-            type: 'Location',
-            city: ipInfo.city,
-            region: ipInfo.regionName,
-            country: ipInfo.country
-          },
-          {
-            type: 'ISP',
-            isp: ipInfo.isp
-          },
-          {
-            type: 'Organization',
-            org: ipInfo.org
-          },
-          {
-            type: 'Network',
-            as: ipInfo.as.split('AS')[1],
-            asname: ipInfo.asname
-          }
-        ];
-        setDnsInfo(formattedData);
-      } else {
-        setError('Failed to fetch IP information.');
+      // Check for errors in ipapi.co response
+      if (ipInfo.error) {
+        throw new Error(ipInfo.reason || 'Failed to fetch IP information');
       }
+
+      const formattedData = [
+        {
+          type: 'PTR',
+          hostname: ptrData.Answer ? ptrData.Answer[0].data.slice(0, -1) : 'No PTR record found'
+        },
+        {
+          type: 'Location',
+          city: ipInfo.city || 'N/A',
+          region: ipInfo.region || 'N/A',
+          country: ipInfo.country_name || 'N/A'
+        },
+        {
+          type: 'ISP',
+          isp: ipInfo.org || 'N/A'
+        },
+        {
+          type: 'Organization',
+          org: ipInfo.org || 'N/A'
+        },
+        {
+          type: 'Network',
+          as: ipInfo.asn || 'N/A',
+          asname: ipInfo.org || 'N/A'
+        }
+      ];
+      setDnsInfo(formattedData);
     } catch (err) {
-      setError('An error occurred while fetching reverse DNS information.');
+      console.error('Error details:', err);
+      setError(`Error: ${err.message || 'An error occurred while fetching reverse DNS information.'}`);
+      setDnsInfo([]);
     } finally {
       setLoading(false);
     }
