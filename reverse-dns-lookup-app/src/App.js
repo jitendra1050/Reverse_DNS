@@ -122,52 +122,49 @@ function App() {
   const [apiResponse, setApiResponse] = useState(null);
   const location = useLocation();
 
-  const fetchReverseDns = async () => {
+  const fetchReverseDns = async (ip) => {
     setLoading(true);
     setError(null);
     try {
-      // First, get PTR record from Google DNS API
-      const ptrResponse = await fetch(`https://dns.google/resolve?name=${ipAddress.split('.').reverse().join('.')}.in-addr.arpa&type=PTR`);
+      // Use the cleaned IP address
+      const cleanedIp = ip.trim().replace(/\s+/g, '');
+      console.log('Cleaned IP:', cleanedIp);
+
+      const dnsUrl = `https://dns.google/resolve?name=${cleanedIp.split('.').reverse().join('.')}.in-addr.arpa&type=PTR`;
+      console.log('Making request to:', dnsUrl);
+
+      const ptrResponse = await fetch(dnsUrl);
       const ptrData = await ptrResponse.json();
       
-      // Then get additional information from IP-API
-      const ipInfoResponse = await fetch(`http://ip-api.com/json/${ipAddress}`);
-      const ipInfo = await ipInfoResponse.json();
+      console.log('Full PTR Response:', ptrData);
       
-      setApiResponse({ ptr: ptrData, ipInfo: ipInfo });
+      setApiResponse({ ptr: ptrData });
       
-      if (ipInfo.status === 'success') {
-        const formattedData = [
-          {
-            type: 'PTR',
-            hostname: ptrData.Answer ? ptrData.Answer[0].data.slice(0, -1) : null
-          },
-          {
-            type: 'Location',
-            city: ipInfo.city,
-            region: ipInfo.regionName,
-            country: ipInfo.country
-          },
-          {
-            type: 'ISP',
-            isp: ipInfo.isp
-          },
-          {
-            type: 'Organization',
-            org: ipInfo.org
-          },
-          {
-            type: 'Network',
-            as: ipInfo.as.split('AS')[1],
-            asname: ipInfo.asname
-          }
-        ];
-        setDnsInfo(formattedData);
-      } else {
-        setError('Failed to fetch IP information.');
+      if (!ptrData.Answer) {
+        console.log('No Answer section in response');
+        throw new Error('No PTR record found for this IP address');
       }
+
+      const hostname = ptrData.Answer[0].data.slice(0, -1);
+      console.log('Extracted hostname:', hostname);
+
+      const formattedData = [
+        {
+          type: 'PTR',
+          hostname: hostname
+        }
+      ];
+
+      console.log('Formatted data to be set:', formattedData);
+      setDnsInfo(formattedData);
     } catch (err) {
-      setError('An error occurred while fetching reverse DNS information.');
+      console.error('Detailed error information:', {
+        message: err.message,
+        stack: err.stack,
+        fullError: err
+      });
+      setError(`Error: ${err.message || 'An error occurred while fetching reverse DNS information.'}`);
+      setDnsInfo([]);
     } finally {
       setLoading(false);
     }
@@ -179,11 +176,17 @@ function App() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (ipAddress) {
-      fetchReverseDns();
-    } else {
-      setError('Please enter a valid IP address.');
+    // Remove all spaces from the IP address, including spaces between numbers and dots
+    const cleanIp = ipAddress.replace(/\s+/g, '');
+    
+    if (!cleanIp) {
+      setError('Please enter an IP address.');
+      return;
     }
+
+    // Update state with clean IP before fetching
+    setIpAddress(cleanIp);
+    fetchReverseDns(cleanIp);
   };
 
   return (
@@ -195,7 +198,6 @@ function App() {
           </Link>
         </div>
         <div className="nav-links">
-          <Link to="/" className={location.pathname === "/" ? "active" : ""}>Home</Link>
           <Link to="/about" className={location.pathname === "/about" ? "active" : ""}>About</Link>
           <Link to="/contact" className={location.pathname === "/contact" ? "active" : ""}>Contact Us</Link>
         </div>
